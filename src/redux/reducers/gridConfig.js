@@ -3,9 +3,11 @@ const gridConfig = (state, action) => {
     case "SAVE_CONFIG":
       return action.payload;
     case "DELETE_CONFIG":
-      return { name: "", gridWidth: 0, gridHeigth: 0 };
+      return state;
     default:
-      return { name: "", gridWidth: 0, gridHeigth: 0 };
+      if (state == undefined)
+        return { name: "Nema konfiguracije!", gridWidth: 0, gridHeigth: 0 };
+      else return state;
   }
 };
 

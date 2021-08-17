@@ -2,8 +2,8 @@ import React from "react";
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 
 import Settings from "./screen/settings";
-import Grid from "./screen/grid";
-
+import Map from "./screen/map";
+import Confirmation from "./screen/confirmation";
 const App = () => {
   return (
     <div
@@ -17,8 +17,11 @@ const App = () => {
           <Route exact path="/">
             <Settings />
           </Route>
-          <Route path="/grid">
-            <Grid />
+          <Route path="/map">
+            <Map />
+          </Route>
+          <Route path="/confirmation">
+            <Confirmation />
           </Route>
         </Switch>
       </Router>

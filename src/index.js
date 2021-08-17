@@ -5,13 +5,15 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 
 import { Provider } from "react-redux";
-import { createStore } from "redux";
-import gridConfig from "../src/redux/reducers/gridConfig";
-import saveConfig from "../src/redux/actions/saveConfig";
+import { createStore, applyMiddleware, compose } from "redux";
+import thunk from "redux-thunk"; 
+// import gridConfig from "../src/redux/reducers/gridConfig";
+// import saveConfig from "../src/redux/actions/saveConfig";
+import { reducers } from "./redux/reducers/index";
 
-let store = createStore(gridConfig);
+const store = createStore(reducers, compose(applyMiddleware(thunk)));
 
-store.dispatch(saveConfig());
+// store.dispatch(reducers, compose(applyMiddleware(thunk)));
 
 ReactDOM.render(
   <Provider store={store}>
