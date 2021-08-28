@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useHistory } from "react-router-dom";
 import { Stage, Layer, Rect, Label } from "react-konva";
-import { Html } from "react-konva-utils";
 import { makeStyles } from "@material-ui/core/styles";
 import Button from "@material-ui/core/Button";
 import Modal from "@material-ui/core/Modal";
@@ -12,7 +11,11 @@ import Checkbox from "@material-ui/core/Checkbox";
 import Select from "@material-ui/core/Select";
 import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
-import OpenWithIcon from "@material-ui/icons/OpenWith";
+import PhotoSizeSelectSmallRoundedIcon from '@material-ui/icons/PhotoSizeSelectSmallRounded';
+import SettingsRoundedIcon from '@material-ui/icons/SettingsRounded';
+import AssignmentTurnedInRoundedIcon from '@material-ui/icons/AssignmentTurnedInRounded';
+import EditRoundedIcon from '@material-ui/icons/EditRounded';
+import AddCircleIcon from '@material-ui/icons/AddCircle';
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
@@ -35,8 +38,10 @@ function Map() {
   const [useSelection, setUseSelection] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [openStBinDets, setOpenStBinDets] = React.useState(false);
+  const [tabContent, setTabContent] = React.useState();
   const [stBinDets, setStBinDets] = React.useState();
   const [stagePosition, setStagePosition] = React.useState({ x: 0, y: 0 });
+  const [detailsTool, setDetailsTool] = React.useState(false);
   const [edit, setEdit] = React.useState({
     regal: null, //eng
     position: null,
@@ -63,6 +68,7 @@ function Map() {
   };
 
   const closeModal = () => {
+    setTabContent(undefined);
     if (openStBinDets) {
       saveConfig();
       setOpenStBinDets(false);
@@ -146,8 +152,8 @@ function Map() {
     if (config === undefined) {
       history.push("/");
     } else {
-      for (let i = 0; i < config.gridConfig.gridHeigth; i++) {
-        for (let j = 0; j < config.gridConfig.gridWidth; j++) {
+      for (let i = 0; i < config.gridConfig.gridWidth; i++) {
+        for (let j = 0; j < config.gridConfig.gridHeigth; j++) {
           if (checkColumn(i, j)) {
             mapConfig.push(setAttributes(i, j, true, []));
           } else {
@@ -221,7 +227,7 @@ function Map() {
     }
   };
 
-  const setProps = (node) => {
+  const setGeneralConfig = () => {
     setOpen(true);
   };
 
@@ -236,8 +242,12 @@ function Map() {
     setOpenStBinDets(false);
   };
 
-  const toggleSelection = (event) => {
-    setUseSelection(event.target.checked);
+  const toggleSelection = () => {
+    if (useSelection) {
+      setUseSelection(false);
+    } else {
+      setUseSelection(true);
+    }
   };
 
   const moveStage = () => {
@@ -245,6 +255,41 @@ function Map() {
     var dy = scrollContainer.current.scrollTop;
     stageRef.current.container().style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
     setStagePosition({ x: -dx, y: -dy })
+  }
+
+  const hoverInOptions = (e) => {
+    e.target.style.width = "130px";
+  }
+
+  const hoverOutOptions = (e) => {
+    e.target.style.width = "80px";
+  }
+
+  const useDetailsTool = () => {
+    if (detailsTool) { setDetailsTool(false) } else { setDetailsTool(true) }
+  }
+
+  const addNewFloor = () => {
+    var position = stBinDets;
+    stBinDets.floors.push({
+      etiketa: null,
+      id: null,
+      inventura: null,
+      organizacija: null,
+      pik: null,
+      pozicija: null,
+      pozicija_redni_broj: null,
+      prolaz: null,
+      prostorija: stBinDets.floors[stBinDets.floors.length - 1].prostorija,
+      regal: stBinDets.floors[stBinDets.floors.length - 1].regal,
+      regal_redni_broj: stBinDets.floors[stBinDets.floors.length - 1].regal_redni_broj,
+      sektor: stBinDets.floors[stBinDets.floors.length - 1].sektor,
+      skupljanje: null,
+      sprat: stBinDets.floors.length + 1,
+      status_kod_inventure: null,
+      upotreba: null,
+    });
+    setStBinDets(position);
   }
 
   const [rects, setRects] = React.useState(() => generateShapes(config));
@@ -264,6 +309,10 @@ function Map() {
       setRects(configTemp);
     }
   };
+
+  const toggleTabs = (floor) => {
+    setTabContent(floor);
+  }
 
   if (config.gridConfig == undefined) {
     history.push("/");
@@ -300,37 +349,6 @@ function Map() {
               marginBottom: 20,
             }}
           >
-            <Checkbox
-              label="Drag select"
-              name="dragSelect"
-              labelStyle={{ color: "white" }}
-              iconStyle={{ fill: "white" }}
-              inputStyle={{ color: "white" }}
-              style={{ color: "white" }}
-              onChange={toggleSelection}
-              checked={useSelection}
-            />
-            <Button
-              className={classes.button}
-              onClick={(node) => setProps(node)}
-            >
-              Configure warehouse
-            </Button>
-            <Link
-              style={{ textDecoration: "none", color: "white" }}
-              to="/confirmation"
-            >
-              <Button
-                className={classes.button}
-                onClick={() =>
-                  dispatch(
-                    saveStBinConfig(rects.filter((rect) => rect.selected))
-                  )
-                }
-              >
-                Završi konfiguraciju
-              </Button>
-            </Link>
           </div>
           <div>
             {/* <div>
@@ -354,230 +372,59 @@ function Map() {
                 )
                 : history.push("/")}
             </div> */}
-            <div ref={scrollContainer} style={{ width: "calc(100vw - 200px)", height: "calc(100vh - 200px)", display: 'flex', margin: 'auto' }} onScroll={() => moveStage()}>
-              <div style={{ width: 'auto', height: 'auto', overflow: 'auto', }}>
-                <Stage
-                  x={stagePosition.x}
-                  y={stagePosition.y}
-                  ref={stageRef}
-                  width={config.gridConfig.gridWidth * 35}
-                  height={config.gridConfig.gridHeigth * 35}
-                  onMouseDown={(e) => startSelect(e)}
-                  onMouseUp={(e) => endSelect(e)}
-                  onMouseMove={(e) => updateLayer(e)}
+            <div ref={scrollContainer} style={{ width: "100vw", height: "calc(100vh - 200px)", display: 'grid', gridTemplateColumns: '2fr 7fr 1fr', margin: 'auto 0 auto auto' }} onScroll={() => moveStage()}>
+              <div>
+                <div
+                  style={{
+                    width: "100%",
+                    margin: "auto",
+                    background: "white",
+                  }}
                 >
-                  <Layer
-                    ref={layerRef}>
-                    {rects.map((rect) => (
-                      <Rect
-                        // key={rect.id}
-                        id={rect.id}
-                        x={rect.x}
-                        y={rect.y}
-                        width={30}
-                        height={30}
-                        floors={rect.floors}
-                        fill={rect.selected ? "#3f51b5" : "#e8eaf6"}
-                        onClick={(node) => {
-                          console.log(node.target)
-                          // if (node.target.attrs.selected) {
-                          //   setStBinDets(node.target.attrs);
-                          //   setOpenStBinDets(true);
-                          // }
+                  <Grid item>
+                    {stBinDets != undefined ? (
+                      <div
+                        style={{
+                          margin: "auto",
+                          background: "white",
+                          height: 'auto',
+                          padding: 50,
                         }}
-                      />
-                    ))}
-                  </Layer>
-                  <Layer>
-                    <Rect ref={selectionRectRef} id="selection" />
-                  </Layer>
-                </Stage>
-
-              </div>
-            </div>
-            <Modal
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-              }}
-              open={open}
-              onClose={closeModal}
-            >
-              <div
-                style={{
-                  margin: "auto",
-                  background: "white",
-                  padding: 50,
-                }}
-              >
-                <Grid item>
-                  <TextField
-                    className="inputFields"
-                    id="outlined-basic"
-                    name="regal"
-                    label="Unesite naziv regala"
-                    variant="outlined"
-                    onChange={(e) =>
-                      setEdit({ ...edit, regal: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item>
-                  <TextField
-                    className="inputFields"
-                    id="outlined-basic"
-                    name="name"
-                    label="Unesite poziciju"
-                    variant="outlined"
-                    onChange={(e) =>
-                      setEdit({ ...edit, position: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item>
-                  <TextField
-                    className="inputFields"
-                    id="outlined-basic"
-                    name="name"
-                    type="number"
-                    label="Unesite broj spratova"
-                    variant="outlined"
-                    onChange={(e) =>
-                      setEdit({ ...edit, floor: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item>
-                  <TextField
-                    className="inputFields"
-                    id="outlined-basic"
-                    name="name"
-                    type="number"
-                    label="Unesite visinu skladišnog mjesta"
-                    variant="outlined"
-                    onChange={(e) =>
-                      setEdit({ ...edit, height: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item>
-                  <TextField
-                    className="inputFields"
-                    id="outlined-basic"
-                    name="name"
-                    type="number"
-                    label="Unesite dužinu skladišnog mjesta"
-                    variant="outlined"
-                    onChange={(e) =>
-                      setEdit({ ...edit, length: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item>
-                  <TextField
-                    className="inputFields"
-                    id="outlined-basic"
-                    name="name"
-                    type="number"
-                    label="Unesite širinu skladišnog mjesta"
-                    variant="outlined"
-                    onChange={(e) =>
-                      setEdit({ ...edit, width: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item>
-                  <InputLabel htmlFor="label">Izaberite sektor</InputLabel>
-                  <Select
-                    className="inputFields"
-                    onChange={(e) =>
-                      setEdit({ ...edit, sector: e.target.value })
-                    }
-                  >
-                    {[...Array(Number(5))].map((_, i) => {
-                      return (
-                        <MenuItem key={i} value={i}>
-                          {i}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </Grid>
-                <Grid item>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={edit.pick}
-                        onChange={handleCheckboxChange}
-                        name="pick"
-                        color="primary"
-                      />
-                    }
-                    label="Ručno sakupljanje"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={edit.inUse}
-                        onChange={handleCheckboxChange}
-                        name="inUse"
-                        color="primary"
-                      />
-                    }
-                    label="U upotrebi"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={edit.inventura}
-                        onChange={handleCheckboxChange}
-                        name="inventura"
-                        color="primary"
-                      />
-                    }
-                    label="Inventura"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={edit.sakupljanje}
-                        onChange={handleCheckboxChange}
-                        name="sakupljanje"
-                        color="primary"
-                      />
-                    }
-                    label="Sakupljanje"
-                  />
-                </Grid>
-              </div>
-            </Modal>
-            <Modal
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-              }}
-              open={openStBinDets}
-              onClose={closeModal}
-            >
-              <div
-                style={{
-                  margin: "auto",
-                  background: "white",
-                  padding: 50,
-                }}
-              >
-                <Grid item>
-                  {stBinDets != null ? (
-                    <div
-                      style={{
-                        margin: "auto",
-                        background: "white",
-                        padding: 50,
-                      }}
-                    >
-                      <Grid item>
+                      >
+                        <h2>Informacije o označenoj poziciji:</h2>
+                        <div style={{
+                          marginBottom: 20, overflowX: 'auto', overflowY: 'hidden', width: '200px',
+                        }}>
+                          {stBinDets.floors.map((floor, indx) => (
+                            <span>
+                              <span onClick={() => toggleTabs(floor)} style={{ padding: 10, borderBottom: '1px solid rgb(63, 81, 181)', marginRight: 5 }}>{indx}</span>
+                            </span>
+                          ))}
+                          <span onClick={() => addNewFloor()} style={{ paddingTop: 10, marginRight: 5 }}><AddCircleIcon /></span>
+                        </div>
+                        {tabContent != undefined ? <div>
+                          <div><h4>ID: {tabContent.id}</h4></div>
+                          <div><b>Regal: {tabContent.regal}</b></div>
+                          <div><b>Redni broj u regalu: {tabContent.regal_redni_broj}</b></div>
+                          <div><b>Sprat: {tabContent.sprat}</b></div>
+                          <div><b>Etiketa: {tabContent.etiketa}</b></div>
+                          <Grid>
+                            <Button
+                              onClick={() => {
+                                console.log(tabContent);
+                              }}
+                              style={{
+                                background: "#f44336",
+                                color: "white",
+                                padding: "10px 20px",
+                                margin: "5px 0",
+                              }}
+                            >
+                              Ukloni sprat
+                            </Button>
+                          </Grid> 
+                        </div> : null}
+                        {/* <Grid item>
                         <TextField
                           className="inputFields"
                           id="outlined-basic"
@@ -763,11 +610,233 @@ function Map() {
                         >
                           Ukloni polje
                         </Button>
-                      </Grid>
-                    </div>
-                  ) : null}
+                      </Grid> */}
+                      </div>
+                    ) : null}
+                  </Grid>
+                </div>
+              </div>
+              <div style={{ width: 'fit', height: 'auto', overflow: 'auto', }}>
+                <Stage
+                  x={stagePosition.x}
+                  y={stagePosition.y}
+                  ref={stageRef}
+                  //width i heigth ispraviti u settingsu
+                  width={config.gridConfig.gridHeigth * 35}
+                  height={config.gridConfig.gridWidth * 35}
+                  onMouseDown={(e) => startSelect(e)}
+                  onMouseUp={(e) => endSelect(e)}
+                  onMouseMove={(e) => updateLayer(e)}
+                >
+                  <Layer
+                    ref={layerRef}>
+                    {rects.map((rect) => (
+                      <Rect
+                        // key={rect.id}
+                        id={rect.id}
+                        x={rect.x}
+                        y={rect.y}
+                        width={30}
+                        height={30}
+                        floors={rect.floors}
+                        fill={rect.selected ? "#3f51b5" : "#e8eaf6"}
+                        selected={rect.selected}
+                        onClick={(node) => {
+                          if (node.target.attrs.selected && detailsTool) {
+                            setStBinDets(node.target.attrs);
+                          }
+                        }}
+                      />
+                    ))}
+                  </Layer>
+                  <Layer>
+                    <Rect ref={selectionRectRef} id="selection" />
+                  </Layer>
+                </Stage>
+              </div>
+              <div style={{ width: '50%', marginLeft: '50%' }}>
+                <div onClick={toggleSelection} onMouseEnter={hoverInOptions} onMouseLeave={hoverOutOptions} style={{ width: 80, height: 60, background: '#c9d1ff', display: 'flex', marginTop: 5, marginLeft: 2, float: 'right', transition: 'width 0.5s' }}><PhotoSizeSelectSmallRoundedIcon style={{ margin: 'auto' }} /></div>
+                <div onClick={setGeneralConfig} onMouseEnter={hoverInOptions} onMouseLeave={hoverOutOptions} style={{ width: 80, height: 60, background: '#c9d1ff', display: 'flex', marginTop: 5, marginLeft: 2, float: 'right', transition: 'width 0.5s' }}><SettingsRoundedIcon style={{ margin: 'auto' }} /></div>
+                <Link
+                  style={{ textDecoration: "none", color: 'black' }}
+                  to="/confirmation"
+                >
+                  <div onClick={() =>
+                    dispatch(
+                      saveStBinConfig(rects.filter((rect) => rect.selected))
+                    )
+                  } onMouseEnter={hoverInOptions} onMouseLeave={hoverOutOptions} style={{ width: 80, height: 60, background: '#c9d1ff', display: 'flex', marginTop: 5, marginLeft: 2, float: 'right', transition: 'width 0.5s' }}><AssignmentTurnedInRoundedIcon style={{ margin: 'auto' }} /></div>
+
+                </Link>
+                <div onClick={useDetailsTool} onMouseEnter={hoverInOptions} onMouseLeave={hoverOutOptions} style={{ width: 80, height: 60, background: '#c9d1ff', display: 'flex', marginTop: 5, marginLeft: 2, float: 'right', transition: 'width 0.5s' }}><EditRoundedIcon style={{ margin: 'auto' }} /></div>
+              </div>
+            </div>
+            <Modal
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+              }}
+              open={open}
+              onClose={closeModal}
+            >
+              <div
+                style={{
+                  margin: "auto",
+                  background: "white",
+                  padding: 50,
+                }}
+              >
+                <Grid item>
+                  <TextField
+                    className="inputFields"
+                    id="outlined-basic"
+                    name="regal"
+                    label="Unesite naziv regala"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setEdit({ ...edit, regal: e.target.value })
+                    }
+                  />
+                </Grid>
+                <Grid item>
+                  <TextField
+                    className="inputFields"
+                    id="outlined-basic"
+                    name="name"
+                    label="Unesite poziciju"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setEdit({ ...edit, position: e.target.value })
+                    }
+                  />
+                </Grid>
+                <Grid item>
+                  <TextField
+                    className="inputFields"
+                    id="outlined-basic"
+                    name="name"
+                    type="number"
+                    label="Unesite broj spratova"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setEdit({ ...edit, floor: e.target.value })
+                    }
+                  />
+                </Grid>
+                <Grid item>
+                  <TextField
+                    className="inputFields"
+                    id="outlined-basic"
+                    name="name"
+                    type="number"
+                    label="Unesite visinu skladišnog mjesta"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setEdit({ ...edit, height: e.target.value })
+                    }
+                  />
+                </Grid>
+                <Grid item>
+                  <TextField
+                    className="inputFields"
+                    id="outlined-basic"
+                    name="name"
+                    type="number"
+                    label="Unesite dužinu skladišnog mjesta"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setEdit({ ...edit, length: e.target.value })
+                    }
+                  />
+                </Grid>
+                <Grid item>
+                  <TextField
+                    className="inputFields"
+                    id="outlined-basic"
+                    name="name"
+                    type="number"
+                    label="Unesite širinu skladišnog mjesta"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setEdit({ ...edit, width: e.target.value })
+                    }
+                  />
+                </Grid>
+                <Grid item>
+                  <InputLabel htmlFor="label">Izaberite sektor</InputLabel>
+                  <Select
+                    className="inputFields"
+                    onChange={(e) =>
+                      setEdit({ ...edit, sector: e.target.value })
+                    }
+                  >
+                    {[...Array(Number(5))].map((_, i) => {
+                      return (
+                        <MenuItem key={i} value={i}>
+                          {i}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </Grid>
+                <Grid item>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={edit.pick}
+                        onChange={handleCheckboxChange}
+                        name="pick"
+                        color="primary"
+                      />
+                    }
+                    label="Ručno sakupljanje"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={edit.inUse}
+                        onChange={handleCheckboxChange}
+                        name="inUse"
+                        color="primary"
+                      />
+                    }
+                    label="U upotrebi"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={edit.inventura}
+                        onChange={handleCheckboxChange}
+                        name="inventura"
+                        color="primary"
+                      />
+                    }
+                    label="Inventura"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={edit.sakupljanje}
+                        onChange={handleCheckboxChange}
+                        name="sakupljanje"
+                        color="primary"
+                      />
+                    }
+                    label="Sakupljanje"
+                  />
                 </Grid>
               </div>
+            </Modal>
+            <Modal
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+              }}
+              open={openStBinDets}
+              onClose={closeModal}
+            >
             </Modal>
           </div>
         </div >
